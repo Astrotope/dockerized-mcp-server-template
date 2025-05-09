@@ -14,8 +14,8 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy application code
 COPY . /code/
 
-# Expose port 3000 for the SSE server
-EXPOSE 3000
+# Expose port 8080 for the SSE server
+EXPOSE 8080
 
 # Start the app with uvicorn
 CMD ["python", "/code/server.py"]
