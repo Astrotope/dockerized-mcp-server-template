@@ -1,3 +1,5 @@
+# python src/weather_test.py --lat 52.52 --lon 13.405
+
 import argparse
 import asyncio
 from weather import get_weather_summary

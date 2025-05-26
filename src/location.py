@@ -1,40 +1,56 @@
-def get_coordinates(place_name):
+from typing import Optional, Dict
+import requests
+import urllib.parse
+
+def get_coordinates(place_name: str) -> Dict[str, Optional[str]]:
     """
-    Get latitude and longitude for a place name.
-    
+    Get latitude and longitude for a place name using the Maps.co geocoding API.
+
     Args:
-        place_name (str): The name of the place to geocode
-        
+        place_name (str): The name of the place to geocode.
+
     Returns:
-        tuple: (latitude, longitude) as strings, or (None, None) if no results
+        dict: {
+            "latitude": Optional[str],
+            "longitude": Optional[str],
+            "status": str
+        }
     """
     api_key = "68344918e32a5644793637ofbf618cd"
     base_url = "https://geocode.maps.co/search"
     
-    # URL encode the place name
     encoded_place = urllib.parse.quote(place_name)
-    
-    # Build the full URL
     url = f"{base_url}?q={encoded_place}&api_key={api_key}"
     
     try:
-        # Make the API request
         response = requests.get(url)
         response.raise_for_status()
-        
-        # Parse JSON response
         data = response.json()
         
-        # Return coordinates from first result if available
         if data and len(data) > 0:
             first_result = data[0]
-            return first_result.get('lat'), first_result.get('lon')
-        else:
-            return None, None
-            
-    except requests.exceptions.RequestException as e:
-        print(f"Error making request: {e}")
-        return None, None
-    except json.JSONDecodeError as e:
-        print(f"Error parsing JSON: {e}")
-        return None, None
+            return {
+                "latitude": first_result.get("lat"),
+                "longitude": first_result.get("lon"),
+                "status": "success"
+            }
+        
+        return {
+            "latitude": None,
+            "longitude": None,
+            "status": "no results found"
+        }
+    
+    except requests.RequestException as e:
+        return {
+            "latitude": None,
+            "longitude": None,
+            "status": f"Request error: {e}"
+        }
+    
+    except ValueError as e:
+        return {
+            "latitude": None,
+            "longitude": None,
+            "status": f"JSON decode error: {e}"
+        }

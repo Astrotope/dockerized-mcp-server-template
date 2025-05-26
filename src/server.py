@@ -1,10 +1,9 @@
 # server.py
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.prompts import base
-import requests
-import urllib.parse
+import asyncio
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from weather import get_weather_summary
 from location import get_coordinates
@@ -35,52 +34,22 @@ def geocode_place(place_name: str) -> Dict[str, Optional[str]]:
     Returns:
         A dictionary with 'latitude', 'longitude', and 'status' keys
     """
-    lat, lon = get_coordinates(place_name)
-    
-    if lat and lon:
-        return {
-            "latitude": lat,
-            "longitude": lon,
-            "status": "success"
-        }
-    else:
-        return {
-            "latitude": None,
-            "longitude": None,
-            "status": f"No coordinates found for '{place_name}'"
-        }
+    return get_coordinates(place_name)
 
 @mcp.tool()
-def get_current_weather(place_name: str) -> Dict[str, Optional[str]]:
+def get_current_weather(lat: float, lon: float) -> Dict[str, Union[float, str, None]]:
     """
-    Get current weather summary (temperature, wind speed, direction) for a place.
+    Get current weather summary (temperature, wind speed, direction) for given coordinates.
 
     Args:
-        place_name: Name of location (e.g., "Tokyo", "Berlin")
+        lat: Latitude (e.g., 52.52)
+        lon: Longitude (e.g., 13.405)
 
     Returns:
         Dictionary with weather data and status
     """
-    lat, lon = get_coordinates(place_name)
-    if not lat or not lon:
-        return {
-            "temperature": None,
-            "wind_speed": None,
-            "wind_direction": None,
-            "status": f"Could not geocode '{place_name}'"
-        }
+    return asyncio.run(get_weather_summary(lat, lon))
 
-    try:
-        result = asyncio.run(get_weather_summary(float(lat), float(lon)))
-        result["status"] = "success"
-        return result
-    except Exception as e:
-        return {
-            "temperature": None,
-            "wind_speed": None,
-            "wind_direction": None,
-            "status": f"Error fetching weather: {str(e)}"
-        }
 
 # Add a dynamic greeting resource
 @mcp.resource("greeting://{name}")
