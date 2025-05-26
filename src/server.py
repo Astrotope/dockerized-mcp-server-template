@@ -24,7 +24,7 @@ def multiply(a: int, b: int) -> int:
     return a * b
 
 @mcp.tool()
-def geocode_place(place_name: str) -> Dict[str, Optional[str]]:
+async def geocode_place(place_name: str) -> Dict[str, Optional[str]]:
     """
     Get latitude and longitude coordinates for a given place name.
     

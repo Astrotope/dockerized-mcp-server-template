@@ -1,0 +1,37 @@
+{'messages': [HumanMessage(content='what is the weather in nyc?', additional_kwargs={}, response_metadata={}, id='08095de1-5e86-4a0f-8d14-ccd88fe20077'), AIMessage(content=[
+            {'text': 'I can help you get the current weather in New York City. Let me look that up for you by first finding the coordinates for NYC and then checking the weather.', 'type': 'text'
+            },
+            {'id': 'toolu_01MsvyBToZcARcyTE7yPNVCS', 'input': {'place_name': 'New York City'
+                }, 'name': 'geocode_place', 'type': 'tool_use'
+            }
+        ], additional_kwargs={}, response_metadata={'id': 'msg_013ZF24eVaocWPCgimrti4Do', 'model': 'claude-3-7-sonnet-20250219', 'stop_reason': 'tool_use', 'stop_sequence': None, 'usage': {'cache_creation_input_tokens': 0, 'cache_read_input_tokens': 0, 'input_tokens': 719, 'output_tokens': 92, 'server_tool_use': None, 'service_tier': 'standard'
+            }, 'model_name': 'claude-3-7-sonnet-20250219'
+        }, id='run--561f6055-d641-4762-b357-67b01efa8fe9-0', tool_calls=[
+            {'name': 'geocode_place', 'args': {'place_name': 'New York City'
+                }, 'id': 'toolu_01MsvyBToZcARcyTE7yPNVCS', 'type': 'tool_call'
+            }
+        ], usage_metadata={'input_tokens': 719, 'output_tokens': 92, 'total_tokens': 811, 'input_token_details': {'cache_read': 0, 'cache_creation': 0
+            }
+        }), ToolMessage(content='{\n  "latitude": "40.7127281",\n  "longitude": "-74.0060152",\n  "status": "success"\n
+        }', name='geocode_place', id='a30c5238-4c8e-4675-9aa2-8568eb3718b3', tool_call_id='toolu_01MsvyBToZcARcyTE7yPNVCS'), AIMessage(content=[
+            {'text': 'Now that I have the coordinates for New York City, let me check the current weather:', 'type': 'text'
+            },
+            {'id': 'toolu_014itdKM18wM2fECqCxiAxUg', 'input': {'lat': 40.7127281, 'lon': -74.0060152
+                }, 'name': 'get_current_weather', 'type': 'tool_use'
+            }
+        ], additional_kwargs={}, response_metadata={'id': 'msg_01AHy1YnAm6phiptuzGnwEAF', 'model': 'claude-3-7-sonnet-20250219', 'stop_reason': 'tool_use', 'stop_sequence': None, 'usage': {'cache_creation_input_tokens': 0, 'cache_read_input_tokens': 0, 'input_tokens': 855, 'output_tokens': 101, 'server_tool_use': None, 'service_tier': 'standard'
+            }, 'model_name': 'claude-3-7-sonnet-20250219'
+        }, id='run--97fc11a5-9bcf-4d50-83b0-84a7d6b876a0-0', tool_calls=[
+            {'name': 'get_current_weather', 'args': {'lat': 40.7127281, 'lon': -74.0060152
+                }, 'id': 'toolu_014itdKM18wM2fECqCxiAxUg', 'type': 'tool_call'
+            }
+        ], usage_metadata={'input_tokens': 855, 'output_tokens': 101, 'total_tokens': 956, 'input_token_details': {'cache_read': 0, 'cache_creation': 0
+            }
+        }), ToolMessage(content='{\n  "temperature": 16.4,\n  "wind_speed": 11.8,\n  "wind_direction": "NNW",\n  "status": "success"\n
+        }', name='get_current_weather', id='9c826435-7155-4baa-ae7c-c2019d7fbb9f', tool_call_id='toolu_014itdKM18wM2fECqCxiAxUg'), AIMessage(content="Here's the current weather in New York City:\n- Temperature: 16.4°C (about 61.5°F)\n- Wind Speed: 11.8 km/h\n- Wind Direction: NNW (North-Northwest)\n\nThe weather is mild with a light breeze coming from the north-northwest direction.", additional_kwargs={}, response_metadata={'id': 'msg_01BANvjBbvEAVUSu2uGCgmYS', 'model': 'claude-3-7-sonnet-20250219', 'stop_reason': 'end_turn', 'stop_sequence': None, 'usage': {'cache_creation_input_tokens': 0, 'cache_read_input_tokens': 0, 'input_tokens': 1010, 'output_tokens': 77, 'server_tool_use': None, 'service_tier': 'standard'
+            }, 'model_name': 'claude-3-7-sonnet-20250219'
+        }, id='run--237ef91a-135f-4e7e-a4ab-806112ac6858-0', usage_metadata={'input_tokens': 1010, 'output_tokens': 77, 'total_tokens': 1087, 'input_token_details': {'cache_read': 0, 'cache_creation': 0
+            }
+        })
+    ]
+}
