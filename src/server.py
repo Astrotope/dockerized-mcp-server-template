@@ -8,7 +8,7 @@ mcp = FastMCP("StatelessServer", stateless_http=True)
 
 # Add an addition tool
 @mcp.tool()
-def add(a: int, b: int) -> int:
+def add(a: float, b: float) -> float:
     """Add two numbers"""
     return a + b
 
