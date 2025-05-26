@@ -4,6 +4,7 @@ from mcp.server.fastmcp.prompts import base
 from PIL import Image
 import base64
 import io
+import re
 
 # Create an MCP server
 mcp = FastMCP("StatelessServer", stateless_http=True)
