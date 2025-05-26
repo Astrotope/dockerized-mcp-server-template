@@ -1,7 +1,7 @@
-# server.py
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.prompts import base
-import asyncio
+from fastmcp import FastMCP
+from starlette.responses import JSONResponse
+from starlette.requests import Request
+
 import json
 from typing import Dict, Optional, Union
 
@@ -9,7 +9,9 @@ from weather import get_weather_summary
 from location import get_coordinates
 
 # Create an MCP server
-mcp = FastMCP("StatelessServer", stateless_http=True)
+mcp = FastMCP("StatelessServer", 
+stateless_http=True,
+)
 
 # Add an addition tool
 @mcp.tool()
@@ -60,6 +62,42 @@ def get_greeting(name: str) -> str:
 @mcp.prompt()
 def review_code(code: str) -> str:
     return f"Please review this code:\n\n{code}"
+
+
+# cli test
+# curl -N -X POST http://0.0.0.0:8000/mcp/tools/list -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
+
+# @contextlib.asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     async with contextlib.AsyncExitStack() as stack:
+#         await stack.enter_async_context(mcp.session_manager.run())
+#         yield
+
+# app = FastAPI(lifespan=lifespan)
+
+# app.mount("/mcp", mcp.streamable_http_app())
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+
+# # Create the ASGI app
+# mcp_app = mcp.http_app(path='/mcp')
+
+# # Create a FastAPI app and mount the MCP server
+# app = FastAPI(lifespan=mcp_app.lifespan)
+# app.mount("/mcp", mcp_app)
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> JSONResponse:
+    return JSONResponse({"status": "ok"})
+
+
+
+# test
+# curl http://0.0.0.0:8000/health
+# curl  GET http://0.0.0.0:8000/heal-N -X POST http://0.0.0.0:8000/mcp/tools/list -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
+
 
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")

@@ -23,6 +23,10 @@ class WeatherResponse(BaseModel):
             }
         }
 
+async def health_endpoint(request: Request):
+    """Health check endpoint that returns 200 OK."""
+    return JSONResponse({"status": "healthy"}, status_code=200)
+
 
 async def test():
 
