@@ -12,6 +12,10 @@ import chess
 import chess.svg
 from pydantic import BaseModel
 
+class FenRequest(BaseModel):
+    """Request model for FEN notation input."""
+    fen: str
+    size: int = 400  # Default board size in pixels
 
 # Create an MCP server
 mcp = FastMCP("StatelessServer", stateless_http=True)
