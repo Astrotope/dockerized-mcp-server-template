@@ -1,6 +1,7 @@
 # server.py
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.prompts import base
+from PIL import Image
 
 # Create an MCP server
 mcp = FastMCP("StatelessServer", stateless_http=True)
@@ -17,6 +18,14 @@ def add(a: float, b: float) -> float:
 def multiply(a: int, b: int) -> int:
     """Multiply two numbers"""
     return a * b
+
+@mcp.tool()
+def create_thumbnail(image_path: str) -> Image:
+    """Create a thumbnail from an image"""
+    img = Image.open(image_path)
+    img.thumbnail((100, 100))
+    return Image(data=img.tobytes(), format="png")
+
 
 # Add a dynamic greeting resource
 @mcp.resource("greeting://{name}")
