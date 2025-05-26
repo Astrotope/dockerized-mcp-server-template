@@ -96,7 +96,7 @@ async def health_check(request: Request) -> JSONResponse:
 
 # test
 # curl http://0.0.0.0:8000/health
-# curl  GET http://0.0.0.0:8000/heal-N -X POST http://0.0.0.0:8000/mcp/tools/list -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
+# curl  -N -X POST http://0.0.0.0:8000/mcp/tools/list -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
 
 
 if __name__ == "__main__":
