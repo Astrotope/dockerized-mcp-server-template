@@ -65,11 +65,18 @@ def create_thumbnail(image_data: str) -> dict:
         if len(image_bytes) == 0:
             raise ValueError("Decoded image data is empty")
         
+        # Debug information about the decoded data
+        data_info = {
+            "length": len(image_bytes),
+            "first_16_bytes": image_bytes[:16].hex() if len(image_bytes) >= 16 else image_bytes.hex(),
+            "is_data_uri": image_data.startswith('data:'),
+            "base64_length": len(cleaned_data)
+        }
+        
         # Check PNG magic bytes (89 50 4E 47 0D 0A 1A 0A)
         png_signature = b'\x89PNG\r\n\x1a\n'
         if not image_bytes.startswith(png_signature):
-            magic_bytes = image_bytes[:8].hex() if len(image_bytes) >= 8 else "N/A"
-            raise ValueError(f"Not a valid PNG image. Magic bytes: {magic_bytes}")
+            raise ValueError(f"Not a valid PNG image. Debug info: {data_info}")
         
         # Open image with PIL
         image_buffer = io.BytesIO(image_bytes)
@@ -83,7 +90,7 @@ def create_thumbnail(image_data: str) -> dict:
                 raise ValueError(f"Expected PNG format, got {img.format}")
                 
         except Exception as pil_error:
-            raise ValueError(f"PIL cannot open image: {str(pil_error)}")
+            raise ValueError(f"PIL cannot open image. Debug info: {data_info}. PIL Error: {str(pil_error)}")
         
         # Create thumbnail (maintains aspect ratio)
         img.thumbnail((100, 100), Image.Resampling.LANCZOS)
