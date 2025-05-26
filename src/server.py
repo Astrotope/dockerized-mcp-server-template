@@ -37,7 +37,7 @@ def geocode_place(place_name: str) -> Dict[str, Optional[str]]:
     return get_coordinates(place_name)
 
 @mcp.tool()
-def get_current_weather(lat: float, lon: float) -> Dict[str, Union[float, str, None]]:
+async def get_current_weather(lat: float, lon: float) -> Dict[str, Union[float, str, None]]:
     """
     Get current weather summary (temperature, wind speed, direction) for given coordinates.
 
@@ -48,7 +48,7 @@ def get_current_weather(lat: float, lon: float) -> Dict[str, Union[float, str, N
     Returns:
         Dictionary with weather data and status
     """
-    return asyncio.run(get_weather_summary(lat, lon))
+    return await get_weather_summary(lat, lon)
 
 
 # Add a dynamic greeting resource
