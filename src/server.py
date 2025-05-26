@@ -16,6 +16,27 @@ from pydantic import BaseModel
 # Create an MCP server
 mcp = FastMCP("StatelessServer", stateless_http=True)
 
+# Create directory for saving chess board images in a writable location
+# Use /tmp in Docker containers or current user's home directory
+import tempfile
+CHESS_BOARDS_DIR = Path(tempfile.gettempdir()) / "chess_boards"
+
+try:
+    CHESS_BOARDS_DIR.mkdir(exist_ok=True)
+except PermissionError:
+    # Fallback to current working directory if tmp is not writable
+    CHESS_BOARDS_DIR = Path.cwd() / "chess_boards"
+    try:
+        CHESS_BOARDS_DIR.mkdir(exist_ok=True)
+    except PermissionError:
+        # Final fallback - use temp directory without subdirectory
+        CHESS_BOARDS_DIR = Path(tempfile.gettempdir())
+
+print(f"Chess boards will be saved to: {CHESS_BOARDS_DIR}")
+
+# In-memory storage for generated chess boards metadata
+_generated_boards: Dict[str, Dict[str, Any]] = {}
+
 
 # Add an addition tool
 @mcp.tool()
