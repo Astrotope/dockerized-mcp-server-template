@@ -5,6 +5,13 @@ from PIL import Image
 import base64
 import io
 import re
+import asyncio
+from pathlib import Path
+from typing import Any, Dict
+import chess
+import chess.svg
+from pydantic import BaseModel
+
 
 # Create an MCP server
 mcp = FastMCP("StatelessServer", stateless_http=True)
@@ -22,120 +29,278 @@ def multiply(a: int, b: int) -> int:
     """Multiply two numbers"""
     return a * b
 
+class FenRequest(BaseModel):
+    """Request model for FEN notation input."""
+    fen: str
+    size: int = 400  # Default board size in pixels
+
+
+# Initialize FastMCP server
+mcp = FastMCP("Chess Board Generator")
+
+# Create directory for saving chess board images
+CHESS_BOARDS_DIR = Path("chess_boards")
+CHESS_BOARDS_DIR.mkdir(exist_ok=True)
+
+# In-memory storage for generated chess boards metadata
+_generated_boards: Dict[str, Dict[str, Any]] = {}
+
+
 @mcp.tool()
-def create_thumbnail(image_data: str) -> dict:
-    """Create a thumbnail from a base64 encoded image
+async def generate_chess_board(request: FenRequest) -> dict[str, Any]:
+    """
+    Generate a chess board image from FEN notation.
     
     Args:
-        image_data: Base64 encoded image data or data URI
-    
+        request: FenRequest containing FEN string and optional board size
+        
     Returns:
-        Dict containing the thumbnail as base64 data with content structure
+        Dictionary containing the chess board image as base64 encoded PNG
     """
     try:
-        # Check if it's a data URI format
-        if image_data.startswith('data:'):
-            # Parse data URI: data:image/png;base64,<data>
-            match = re.match(r'data:image/(\w+);base64,(.+)', image_data)
-            if not match:
-                raise ValueError("Invalid data URI format. Expected: data:image/png;base64,<data>")
-            
-            format_type, base64_data = match.groups()
-            
-            # Only accept PNG images
-            if format_type.lower() != 'png':
-                raise ValueError(f"Only PNG images are supported. Received: image/{format_type}")
-            
-            # Use the base64 part
-            cleaned_data = base64_data
-        else:
-            # Assume it's just base64 data
-            cleaned_data = image_data.strip()
+        # Parse the FEN notation
+        board = chess.Board(request.fen)
         
-        # Remove any whitespace/newlines from base64 data
-        cleaned_data = cleaned_data.replace('\n', '').replace('\r', '').replace(' ', '')
+        # Generate SVG representation of the board
+        svg_string = chess.svg.board(
+            board=board,
+            size=request.size,
+            coordinates=True,  # Show coordinate labels
+            flipped=False      # White pieces at bottom
+        )
         
-        # Fix base64 padding if needed
-        # Base64 strings should be divisible by 4, pad with '=' if needed
-        missing_padding = len(cleaned_data) % 4
-        if missing_padding:
-            cleaned_data += '=' * (4 - missing_padding)
-        
-        # Decode base64 image data
+        # Convert SVG to PNG using cairosvg (you'll need to install this)
         try:
-            image_bytes = base64.b64decode(cleaned_data)
-        except Exception as decode_error:
-            raise ValueError(f"Failed to decode base64 data: {str(decode_error)}. Data length: {len(cleaned_data)}, starts with: {cleaned_data[:50]}...")
+            import cairosvg
+            png_bytes = cairosvg.svg2png(
+                bytestring=svg_string.encode('utf-8'),
+                output_width=request.size,
+                output_height=request.size
+            )
+            
+            # Save PNG to file
+            board_id = f"board_{len(_generated_boards) + 1}"
+            filename = f"{board_id}.png"
+            filepath = CHESS_BOARDS_DIR / filename
+            
+            with open(filepath, 'wb') as f:
+                f.write(png_bytes)
+            
+            file_uri = f"file://{filepath.absolute()}"
+            
+        except ImportError:
+            # Fallback: save SVG file
+            board_id = f"board_{len(_generated_boards) + 1}"
+            filename = f"{board_id}.svg"
+            filepath = CHESS_BOARDS_DIR / filename
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(svg_string)
+            
+            file_uri = f"file://{filepath.absolute()}"
         
-        # Validate we have actual image data
-        if len(image_bytes) == 0:
-            raise ValueError("Decoded image data is empty")
+        # Store metadata for the resource
+        resource_uri = f"chess://board/{board_id}"
         
-        # Debug information about the decoded data
-        data_info = {
-            "length": len(image_bytes),
-            "first_16_bytes": image_bytes[:16].hex() if len(image_bytes) >= 16 else image_bytes.hex(),
-            "is_data_uri": image_data.startswith('data:'),
-            "base64_length": len(cleaned_data)
+        _generated_boards[board_id] = {
+            "uri": resource_uri,
+            "file_path": str(filepath),
+            "file_uri": file_uri,
+            "name": f"Chess Board - {request.fen[:20]}...",
+            "description": f"Chess board generated from FEN: {request.fen}",
+            "mimeType": "image/png" if filepath.suffix == '.png' else "image/svg+xml",
+            "fen": request.fen,
+            "size": request.size
         }
         
-        # Check PNG magic bytes (89 50 4E 47 0D 0A 1A 0A)
-        png_signature = b'\x89PNG\r\n\x1a\n'
-        if not image_bytes.startswith(png_signature):
-            raise ValueError(f"Not a valid PNG image. Debug info: {data_info}")
-        
-        # Open image with PIL
-        image_buffer = io.BytesIO(image_bytes)
-        try:
-            img = Image.open(image_buffer)
-            # Force load to verify it's a valid image
-            img.load()
-            
-            # Double-check it's PNG format
-            if img.format != 'PNG':
-                raise ValueError(f"Expected PNG format, got {img.format}")
-                
-        except Exception as pil_error:
-            raise ValueError(f"PIL cannot open image. Debug info: {data_info}. PIL Error: {str(pil_error)}")
-        
-        # Create thumbnail (maintains aspect ratio)
-        img.thumbnail((100, 100), Image.Resampling.LANCZOS)
-        
-        # Convert thumbnail back to PNG bytes
-        output_buffer = io.BytesIO()
-        img.save(output_buffer, format='PNG', optimize=True)
-        
-        # Encode thumbnail as base64
-        thumbnail_base64 = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
-        
-        # Return in MCP format for images
-        return {
-            "content": [
-                {
-                    "type": "image",
-                    "data": thumbnail_base64,
-                    "mimeType": "image/png"
-                }
-            ]
-        }
-        
-    except Exception as e:
         return {
             "content": [
                 {
                     "type": "text",
-                    "data": f"Error creating thumbnail: {str(e)}"
+                    "text": f"Generated chess board from FEN: {request.fen}\n" +
+                           f"Board position: {board.fen()}\n" +
+                           f"Saved to: {filepath}\n" +
+                           f"Available as resource: {resource_uri}\n\n" +
+                           f"You can access this chess board through the resources panel."
+                }
+            ]
+        }
+        
+    except chess.InvalidFenError as e:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Error: Invalid FEN notation '{request.fen}'. {str(e)}"
+                }
+            ]
+        }
+    except Exception as e:
+        return {
+            "content": [
+                {
+                    "type": "text", 
+                    "text": f"Error generating chess board: {str(e)}"
                 }
             ]
         }
 
-@mcp.prompt()
-def debug_error(error: str) -> list[base.Message]:
-    return [
-        base.UserMessage("I'm seeing this error:"),
-        base.UserMessage(error),
-        base.AssistantMessage("I'll help debug that. What have you tried so far?"),
-    ]
+
+@mcp.tool()
+async def validate_fen(fen: str) -> dict[str, Any]:
+    """
+    Validate FEN notation and provide board information.
+    
+    Args:
+        fen: FEN notation string to validate
+        
+    Returns:
+        Dictionary containing validation result and board information
+    """
+    try:
+        board = chess.Board(fen)
+        
+        # Get basic board information
+        info = {
+            "valid": True,
+            "fen": board.fen(),
+            "turn": "White" if board.turn else "Black",
+            "castling_rights": board.castling_rights,
+            "en_passant": str(board.ep_square) if board.ep_square else None,
+            "halfmove_clock": board.halfmove_clock,
+            "fullmove_number": board.fullmove_number,
+            "is_check": board.is_check(),
+            "is_checkmate": board.is_checkmate(),
+            "is_stalemate": board.is_stalemate(),
+            "is_game_over": board.is_game_over()
+        }
+        
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"FEN Validation Results:\n" + 
+                           f"Valid: {info['valid']}\n" +
+                           f"Turn: {info['turn']}\n" +
+                           f"Check: {info['is_check']}\n" +
+                           f"Checkmate: {info['is_checkmate']}\n" +
+                           f"Stalemate: {info['is_stalemate']}\n" +
+                           f"Game Over: {info['is_game_over']}\n" +
+                           f"Halfmove Clock: {info['halfmove_clock']}\n" +
+                           f"Fullmove Number: {info['fullmove_number']}"
+                }
+            ]
+        }
+        
+    except chess.InvalidFenError as e:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Invalid FEN notation: {str(e)}"
+                }
+            ]
+        }
+
+
+@mcp.tool()
+async def list_chess_boards() -> dict[str, Any]:
+    """
+    List all generated chess boards available as resources.
+    
+    Returns:
+        Dictionary containing information about all available chess board resources
+    """
+    if not _generated_boards:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": "No chess boards have been generated yet. Use the generate_chess_board tool to create some!"
+                }
+            ]
+        }
+    
+    board_list = []
+    for board_id, board_data in _generated_boards.items():
+        board_list.append(f"- {board_data['name']} ({board_data['uri']})\n  FEN: {board_data['fen']}\n  File: {board_data['file_path']}")
+    
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": f"Available chess board resources ({len(_generated_boards)} total):\n\n" + "\n\n".join(board_list)
+            }
+        ]
+    }
+
+
+@mcp.tool()
+async def clear_chess_boards() -> dict[str, Any]:
+    """
+    Clear all generated chess board resources and delete files.
+    
+    Returns:
+        Dictionary containing confirmation message
+    """
+    count = len(_generated_boards)
+    
+    # Delete the actual files
+    for board_data in _generated_boards.values():
+        try:
+            filepath = Path(board_data['file_path'])
+            if filepath.exists():
+                filepath.unlink()
+        except Exception as e:
+            print(f"Error deleting {board_data['file_path']}: {e}")
+    
+    _generated_boards.clear()
+    
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": f"Cleared {count} chess board resource(s) and deleted their files."
+            }
+        ]
+    }
+
+
+@mcp.resource("chess://board/{board_id}")
+async def get_chess_board_resource(board_id: str) -> dict[str, Any]:
+    """
+    Get a chess board resource by ID.
+    
+    Args:
+        board_id: The ID of the chess board to retrieve
+        
+    Returns:
+        Dictionary containing the chess board resource
+    """
+    if board_id not in _generated_boards:
+        raise ValueError(f"Chess board {board_id} not found")
+    
+    board_data = _generated_boards[board_id]
+    filepath = Path(board_data['file_path'])
+    
+    if not filepath.exists():
+        raise ValueError(f"Chess board file {filepath} not found")
+    
+    # Read the file and encode as base64
+    with open(filepath, 'rb') as f:
+        file_data = f.read()
+    
+    base64_data = base64.b64encode(file_data).decode('utf-8')
+    
+    return {
+        "contents": [
+            {
+                "uri": board_data["uri"],
+                "mimeType": board_data["mimeType"],
+                "blob": base64_data
+            }
+        ]
+    }
 
 
 
