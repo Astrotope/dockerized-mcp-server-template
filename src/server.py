@@ -6,46 +6,8 @@ import urllib.parse
 import json
 from typing import Dict, Optional
 
-def get_coordinates(place_name):
-    """
-    Get latitude and longitude for a place name.
-    
-    Args:
-        place_name (str): The name of the place to geocode
-        
-    Returns:
-        tuple: (latitude, longitude) as strings, or (None, None) if no results
-    """
-    api_key = "68344918e32a5644793637ofbf618cd"
-    base_url = "https://geocode.maps.co/search"
-    
-    # URL encode the place name
-    encoded_place = urllib.parse.quote(place_name)
-    
-    # Build the full URL
-    url = f"{base_url}?q={encoded_place}&api_key={api_key}"
-    
-    try:
-        # Make the API request
-        response = requests.get(url)
-        response.raise_for_status()
-        
-        # Parse JSON response
-        data = response.json()
-        
-        # Return coordinates from first result if available
-        if data and len(data) > 0:
-            first_result = data[0]
-            return first_result.get('lat'), first_result.get('lon')
-        else:
-            return None, None
-            
-    except requests.exceptions.RequestException as e:
-        print(f"Error making request: {e}")
-        return None, None
-    except json.JSONDecodeError as e:
-        print(f"Error parsing JSON: {e}")
-        return None, None
+from weather import get_weather_summary
+from location import get_coordinates
 
 # Create an MCP server
 mcp = FastMCP("StatelessServer", stateless_http=True)
@@ -86,6 +48,38 @@ def geocode_place(place_name: str) -> Dict[str, Optional[str]]:
             "latitude": None,
             "longitude": None,
             "status": f"No coordinates found for '{place_name}'"
+        }
+
+@mcp.tool()
+def get_current_weather(place_name: str) -> Dict[str, Optional[str]]:
+    """
+    Get current weather summary (temperature, wind speed, direction) for a place.
+
+    Args:
+        place_name: Name of location (e.g., "Tokyo", "Berlin")
+
+    Returns:
+        Dictionary with weather data and status
+    """
+    lat, lon = get_coordinates(place_name)
+    if not lat or not lon:
+        return {
+            "temperature": None,
+            "wind_speed": None,
+            "wind_direction": None,
+            "status": f"Could not geocode '{place_name}'"
+        }
+
+    try:
+        result = asyncio.run(get_weather_summary(float(lat), float(lon)))
+        result["status"] = "success"
+        return result
+    except Exception as e:
+        return {
+            "temperature": None,
+            "wind_speed": None,
+            "wind_direction": None,
+            "status": f"Error fetching weather: {str(e)}"
         }
 
 # Add a dynamic greeting resource

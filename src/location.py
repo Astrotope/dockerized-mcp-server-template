@@ -1,8 +1,3 @@
-import requests
-import urllib.parse
-import json
-import sys
-
 def get_coordinates(place_name):
     """
     Get latitude and longitude for a place name.
@@ -43,19 +38,3 @@ def get_coordinates(place_name):
     except json.JSONDecodeError as e:
         print(f"Error parsing JSON: {e}")
         return None, None
-
-if __name__ == "__main__":
-    # Check if place name was provided as command line argument
-    if len(sys.argv) < 2:
-        print("Usage: python geocode.py <place_name>")
-        print("Example: python geocode.py florida")
-        sys.exit(1)
-    
-    # Get place name from command line (join all arguments in case of spaces)
-    place_name = " ".join(sys.argv[1:])
-    
-    lat, lon = get_coordinates(place_name)
-    if lat and lon:
-        print(f"Coordinates for '{place_name}': {lat}, {lon}")
-    else:
-        print(f"No coordinates found for '{place_name}'")
