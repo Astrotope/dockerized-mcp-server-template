@@ -19,7 +19,7 @@ EXPOSE 8080
 
 # Start the app with uvicorn
 # CMD ["python", "/code/server.py"]
-CMD ["fastmcp", "run", "src/server.py", "--transport", "streamable-http", "--port", "8000", "--host", "0.0.0.0"]
+CMD ["fastmcp", "run", "/code/server.py", "--transport", "streamable-http", "--port", "8000", "--host", "0.0.0.0"]
 
 # Create a non-root user
 RUN useradd -m appuser
