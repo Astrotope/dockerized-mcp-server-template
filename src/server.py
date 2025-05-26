@@ -1,27 +1,22 @@
-import os
-import multiprocessing
-import uvicorn
+# server.py
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("docker-mcp", stateless_http=True)
-app = mcp.streamable_http_app()
+# Create an MCP server
+mcp = FastMCP("StatelessServer", stateless_http=True)
 
-# Define a simple function called 'add' to be used with the MCP
+
+# Add an addition tool
 @mcp.tool()
 def add(a: int, b: int) -> int:
     """Add two numbers"""
     return a + b
 
+
+# Add a dynamic greeting resource
+@mcp.resource("greeting://{name}")
+def get_greeting(name: str) -> str:
+    """Get a personalized greeting"""
+    return f"Hello, {name}!"
+
 if __name__ == "__main__":
-    if os.getenv("RUNNING_IN_PRODUCTION"):
-        # Production mode with multiple workers for better performance
-        uvicorn.run(
-            "server:app",  # Pass as import string
-            host="0.0.0.0",
-            port=8080,
-            workers=(multiprocessing.cpu_count() * 2) + 1,
-            timeout_keep_alive=300  # Increased for SSE connections
-        )
-    else:
-        # Development mode with a single worker for easier debugging
-        uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=True)
+    mcp.run(transport="streamable-http")
