@@ -55,11 +55,17 @@ def create_thumbnail(image_data: str) -> dict:
         # Remove any whitespace/newlines from base64 data
         cleaned_data = cleaned_data.replace('\n', '').replace('\r', '').replace(' ', '')
         
+        # Fix base64 padding if needed
+        # Base64 strings should be divisible by 4, pad with '=' if needed
+        missing_padding = len(cleaned_data) % 4
+        if missing_padding:
+            cleaned_data += '=' * (4 - missing_padding)
+        
         # Decode base64 image data
         try:
             image_bytes = base64.b64decode(cleaned_data)
         except Exception as decode_error:
-            raise ValueError(f"Failed to decode base64 data: {str(decode_error)}")
+            raise ValueError(f"Failed to decode base64 data: {str(decode_error)}. Data length: {len(cleaned_data)}, starts with: {cleaned_data[:50]}...")
         
         # Validate we have actual image data
         if len(image_bytes) == 0:
