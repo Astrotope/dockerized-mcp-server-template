@@ -90,7 +90,7 @@ def review_code(code: str) -> str:
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request) -> JSONResponse:
-    return JSONResponse({"status": "ok"})
+    return JSONResponse(content={"status": "ok"}, status_code=200)
 
 
 
