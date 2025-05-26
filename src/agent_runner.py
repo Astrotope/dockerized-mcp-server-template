@@ -2,6 +2,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.prebuilt import create_react_agent
 import asyncio
 import os
+import json
 from pydantic import BaseModel, Field
 from typing import Literal
 
@@ -48,7 +49,40 @@ async def test():
     async for chunk in agent.astream(
     {"messages": [{"role": "user", "content": "what is the weather in sf"}]},
     stream_mode="updates"
-    ):print(chunk)
+    ):
+        # Convert AIMessage objects to dicts if needed
+        def serialize(obj):
+            if hasattr(obj, "model_dump"):
+                return obj.model_dump()
+            elif hasattr(obj, "__dict__"):
+                return obj.__dict__
+            else:
+                return str(obj)
+
+        data = json.loads(json.dumps(chunk, default=serialize, indent=2))
+
+        first_key = list(data.keys())[0]
+
+        if first_key == "agent":
+            messages = data["agent"]["messages"]
+            content = messages[0]["content"]
+
+            if isinstance(content, list):
+                first_content = content[0]
+                if isinstance(first_content, dict) and "text" in first_content:
+                    print(first_content["text"])
+                else:
+                    print(first_content)
+            elif isinstance(content, str):
+                print(content)
+            else:
+                print(content)
+
+        elif first_key == "tools":
+            print(data["tools"]["messages"][0]["content"])
+
+        elif first_key == "generate_structured_response":
+            print(data["generate_structured_response"]["structured_response"])
 
     response = chunk["generate_structured_response"]["structured_response"]
 
