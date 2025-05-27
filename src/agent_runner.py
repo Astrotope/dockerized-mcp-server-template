@@ -6,6 +6,29 @@ import json
 from pydantic import BaseModel, Field
 from typing import Literal
 
+from mattermostdriver import Driver
+
+mmd = Driver({
+    'url': 'mattermost-astrotope.sliplane.app',
+    'login_id': 'astrotope',
+    'password': 'T3k5Fqs7FaVU9LO',
+    'token': 'bbsjobqfwfdzifkcgyudc67imy',
+    'scheme': 'https',
+    'port': 443,
+    'basepath': '/api/v4'
+})
+
+mmd.login()
+
+channel_id = mmd.channels.get_channel_by_name_and_team_name('astrotopeorg', 'mcp')['id']
+
+def sent_to_mm(message: str) -> None:
+    mmd.posts.create_post(options={
+    'channel_id': channel_id,
+    'message': message})
+
+channel_id = mmd.channels.get_channel_by_name_and_team_name('astrotopeorg', 'mcp')['id']
+
 class WeatherResponse(BaseModel):
     temperature: float = Field(..., description="Temperature in degrees Celsius")
     wind_speed: float = Field(..., description="Wind speed in meters per second")
@@ -70,18 +93,24 @@ async def test():
                 first_content = content[0]
                 if isinstance(first_content, dict) and "text" in first_content:
                     print(first_content["text"])
+                    sent_to_mm(first_content["text"])
                 else:
                     print(first_content)
+                    sent_to_mm(first_content)
             elif isinstance(content, str):
                 print(content)
+                sent_to_mm(content)
             else:
                 print(content)
+                sent_to_mm(content)
 
         elif first_key == "tools":
             print(data["tools"]["messages"][0]["content"])
+            sent_to_mm(data["tools"]["messages"][0]["content"])
 
         elif first_key == "generate_structured_response":
             print(data["generate_structured_response"]["structured_response"])
+            sent_to_mm(json.dumps(data["generate_structured_response"]["structured_response"]))
 
     response = chunk["generate_structured_response"]["structured_response"]
 
