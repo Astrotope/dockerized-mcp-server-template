@@ -5,6 +5,9 @@ from starlette.requests import Request
 import json
 from typing import Dict, Optional, Union
 
+from pydantic import Field
+from typing import Literal, Optional
+
 from weather import get_weather_summary
 from location import get_coordinates
 
@@ -63,35 +66,23 @@ def get_greeting(name: str) -> str:
 def review_code(code: str) -> str:
     return f"Please review this code:\n\n{code}"
 
+@mcp.prompt(
+    name="analyze_data_request",          # Custom prompt name
+    description="Creates a request to analyze data with specific parameters",  # Custom description
+    tags={"analysis", "data"}             # Optional categorization tags
+)
+def data_analysis_prompt(
+    data_uri: str = Field(description="The URI of the resource containing the data."),
+    analysis_type: str = Field(default="summary", description="Type of analysis.")
+) -> str:
+    """This docstring is ignored when description is provided."""
+    return f"Please perform a '{analysis_type}' analysis on the data found at {data_uri}."
 
-# cli test
-# curl -N -X POST http://0.0.0.0:8000/mcp/tools/list -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
 
-# @contextlib.asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     async with contextlib.AsyncExitStack() as stack:
-#         await stack.enter_async_context(mcp.session_manager.run())
-#         yield
-
-# app = FastAPI(lifespan=lifespan)
-
-# app.mount("/mcp", mcp.streamable_http_app())
-
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
-
-# # Create the ASGI app
-# mcp_app = mcp.http_app(path='/mcp')
-
-# # Create a FastAPI app and mount the MCP server
-# app = FastAPI(lifespan=mcp_app.lifespan)
-# app.mount("/mcp", mcp_app)
-
+# Health check route
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request) -> JSONResponse:
     return JSONResponse(content={"status": "ok"}, status_code=200)
-
 
 
 # test
