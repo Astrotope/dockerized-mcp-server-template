@@ -7,15 +7,6 @@
             "https://mcp-server.sliplane.app/mcp"
           ]
         },
-        "riza-server": {
-            "command": "npx",
-            "args": [
-                "@riza-io/riza-mcp"
-            ],
-            "env": {
-                "RIZA_API_KEY": "gE9K1HVg0J4RShpk9%2FPz9YhWLu3p0ZOqagdvf52uuKRShygj4Fif0HFhTCgpSrpEwtOZQ00T%2BI28Kb1NNmPSM8vh"
-            }
-        },
         "fetch": {
             "command": "uvx",
             "args": ["mcp-server-fetch"]
